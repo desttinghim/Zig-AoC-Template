@@ -5,29 +5,21 @@ const data = @embedFile("../data/day01.txt");
 pub fn main() !void {
     var tokenIterator = std.mem.tokenize(u8, data, " \n");
     var window: [3]i32 = .{ 0, 0, 0 };
-    var previousSum: ?i32 = null;
     var increaseCount: usize = 0;
     var windowIndex: usize = 0;
     while (tokenIterator.next()) |token| : (windowIndex += 1) {
         const radix = 10;
         var depth = try std.fmt.parseInt(i32, token, radix);
 
+        // The current index is the same as the index we need to compare against
         const i = windowIndex % 3;
-        window[i] = depth;
 
-        // Only sum index if we've seen at least 3 values
-        if (windowIndex >= 2) {
-            var sum = window[0] + window[1] + window[2];
-            std.debug.print("{} + {} + {} = {}", .{ window[0], window[1], window[2], sum });
-            if (previousSum) |lastSum| {
-                if (sum > lastSum) {
-                    increaseCount += 1;
-                    std.debug.print(" (increase)", .{});
-                }
-            }
-            previousSum = sum;
-            std.debug.print("\n", .{});
+        // Only 'sum' index if we've seen at least 3 values
+        if (windowIndex >= 3) {
+            if (depth > window[i]) increaseCount += 1;
         }
+        // Update the window
+        window[i] = depth;
     }
-    std.debug.print("Increases: {}, lastSum: {}, windowIndex: {}\n", .{ increaseCount, previousSum, windowIndex });
+    std.debug.print("Increases: {}\n", .{increaseCount});
 }
