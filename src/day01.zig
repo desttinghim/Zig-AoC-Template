@@ -13,19 +13,32 @@ const data = @embedFile("../data/day01.txt");
 
 pub fn main() !void {
     var tokenIterator = tokenize(u8, data, " \n");
-    var previousDepth: ?i32 = null;
+    var window: [3]i32 = .{ 0, 0, 0 };
+    var previousSum: ?i32 = null;
     var increaseCount: usize = 0;
-    while (tokenIterator.next()) |token| {
+    var windowIndex: usize = 0;
+    while (tokenIterator.next()) |token| : (windowIndex += 1) {
         const radix = 10;
         var depth = try std.fmt.parseInt(i32, token, radix);
-        if (previousDepth) |lastDepth| {
-            if (depth > lastDepth) {
-                increaseCount += 1;
+
+        const i = windowIndex % 3;
+        window[i] = depth;
+
+        // Only sum index if we've seen at least 3 values
+        if (windowIndex >= 2) {
+            var sum = window[0] + window[1] + window[2];
+            print("{} + {} + {} = {}", .{ window[0], window[1], window[2], sum });
+            if (previousSum) |lastSum| {
+                if (sum > lastSum) {
+                    increaseCount += 1;
+                    print(" (increase)", .{});
+                }
             }
+            previousSum = sum;
+            print("\n", .{});
         }
-        previousDepth = depth;
     }
-    print("Increase count: {}\n", .{increaseCount});
+    print("Increases: {}, lastSum: {}, windowIndex: {}\n", .{ increaseCount, previousSum, windowIndex });
 }
 
 // Useful stdlib functions
