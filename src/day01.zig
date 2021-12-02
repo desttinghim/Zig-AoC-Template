@@ -12,7 +12,20 @@ const gpa = util.gpa;
 const data = @embedFile("../data/day01.txt");
 
 pub fn main() !void {
-
+    var tokenIterator = tokenize(u8, data, " \n");
+    var previousDepth: ?i32 = null;
+    var increaseCount: usize = 0;
+    while (tokenIterator.next()) |token| {
+        const radix = 10;
+        var depth = try std.fmt.parseInt(i32, token, radix);
+        if (previousDepth) |lastDepth| {
+            if (depth > lastDepth) {
+                increaseCount += 1;
+            }
+        }
+        previousDepth = depth;
+    }
+    print("Increase count: {}\n", .{increaseCount});
 }
 
 // Useful stdlib functions
