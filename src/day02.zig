@@ -12,7 +12,37 @@ const gpa = util.gpa;
 const data = @embedFile("../data/day02.txt");
 
 pub fn main() !void {
-    
+    var tokenIter = tokenize(u8, data, "\n\r ");
+    var x: i64 = 0;
+    var y: i64 = 0;
+    var aim: i64 = 0;
+    const radix = 10;
+    var command: ?enum { Forward, Up, Down } = null;
+    while (tokenIter.next()) |token| {
+        if (command) |cmd| {
+            var amount = try parseInt(i32, token, radix);
+            switch (cmd) {
+                .Forward => {
+                    x += amount;
+                    y += aim * amount;
+                },
+                .Up => {
+                    // y -= amount;
+                    aim -= amount;
+                },
+                .Down => {
+                    // y += amount;
+                    aim += amount;
+                },
+            }
+            command = null;
+        } else {
+            if (std.mem.eql(u8, token, "forward")) command = .Forward;
+            if (std.mem.eql(u8, token, "up")) command = .Up;
+            if (std.mem.eql(u8, token, "down")) command = .Down;
+        }
+    }
+    print("x: {}, y: {}, aim: {}, x*y={} \n", .{ x, y, aim, x * y });
 }
 
 // Useful stdlib functions
