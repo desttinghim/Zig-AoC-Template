@@ -15,11 +15,13 @@ pub fn main() !void {
     var readings = try loadReadings(u12, data);
     defer readings.deinit();
 
-    var sums = try sumallbits(u12, readings);
+    var sums = try sumallbits(u12, readings.items);
     defer sums.deinit();
 
-    try part1(readings.items.len, sums.items);
-    // try part2(readings, sums.items);
+    var power = part1(readings.items.len, sums.items);
+    print("gamma {}, epsilon {}, power {}\n", .{ power.gamma, power.epsilon, power.power });
+
+    try part2(readings.items);
 }
 
 const Power = struct { gamma: u32, epsilon: u32, power: u32 };
@@ -34,43 +36,55 @@ fn part1(total: usize, sums: []const u32) Power {
     return power;
 }
 
-fn part2(readings: ArrayList(u12), total1Bits: [12]u16) !void {
-    var a: u4 = 0;
-    var list = ArrayList(u12).init(gpa);
-    try list.appendSlice(readings.items);
-    defer list.deinit();
+fn part2(readings: []u12) !void {
+    var oxylist = ArrayList(u12).init(gpa);
+    try oxylist.appendSlice(readings);
+    defer oxylist.deinit();
+    var removeList = ArrayList(u16).init(gpa);
+    defer removeList.deinit();
+    var biterator: u5 = std.meta.bitCount(u12);
+    filter: while (biterator > 0) : (biterator -= 1) {
+        const bit = biterator - 1;
+        const sum = sumbit(u12, oxylist.items, bit);
 
-    while (a < 12) : (a += 1) {
-        var mostcommon: u1 = if (total1Bits[a] >= readings.items.len / 2) 1 else 0;
-        print("{}", .{mostcommon});
-        if (mostcommon == 1) {
-            keepOnesAtPos(&list, a);
-        } else if (mostcommon == 0) {
-            keepZeroesAtPos(&list, a);
+        const common: u1 = if (sum >= oxylist.items.len - sum) 1 else 0;
+        for (oxylist.items) |item, i| {
+            if ((isBitOne(item, bit) and common == 0) or (!isBitOne(item, bit) and common == 1)) try removeList.append(@intCast(u16, i));
         }
-        if (list.items.len == 1) break;
-    }
-    var oxygen: u32 = list.items[0];
-    print("\noxygen\t\t{b}\n", .{oxygen});
-
-    a = 0;
-    try list.resize(0);
-    try list.appendSlice(readings.items);
-    while (a < 12) : (a += 1) {
-        var leastcommon: u1 = if (total1Bits[a] <= readings.items.len / 2) 1 else 0;
-        print("{}", .{leastcommon});
-        if (leastcommon == 1) {
-            keepOnesAtPos(&list, a);
-        } else if (leastcommon == 0) {
-            keepZeroesAtPos(&list, a);
+        // Since indexes were added in order, reverse so we go backwards
+        std.mem.reverse(u16, removeList.items);
+        for (removeList.items) |remove| {
+            _ = oxylist.orderedRemove(remove);
+            if (oxylist.items.len == 1) break :filter;
         }
-        if (list.items.len == 1) break;
+        try removeList.resize(0);
     }
-    var co2: u32 = list.items[0];
-    print("\nco2\t\t{b}\n", .{co2});
+    const oxygen = oxylist.items[0];
 
-    var lifesupport = oxygen * co2;
-    print("life support: {}\n", .{lifesupport});
+    var co2list = ArrayList(u12).init(gpa);
+    try co2list.appendSlice(readings);
+    defer co2list.deinit();
+    try removeList.resize(0);
+    biterator = std.meta.bitCount(u12);
+    filter: while (biterator > 0) : (biterator -= 1) {
+        const bit = biterator - 1;
+        const sum = sumbit(u12, co2list.items, bit);
+
+        const uncommon: u1 = if (sum >= co2list.items.len - sum) 0 else 1;
+        for (co2list.items) |item, i| {
+            if ((isBitOne(item, bit) and uncommon == 0) or (!isBitOne(item, bit) and uncommon == 1)) try removeList.append(@intCast(u16, i));
+        }
+        // Since indexes were added in order, reverse so we go backwards
+        std.mem.reverse(u16, removeList.items);
+        for (removeList.items) |remove| {
+            _ = co2list.orderedRemove(remove);
+            if (co2list.items.len == 1) break :filter;
+        }
+        try removeList.resize(0);
+    }
+    const co2 = co2list.items[0];
+    const lifesupport = @intCast(u32, oxygen) * @intCast(u32, co2);
+    print("oxygen {}, co2 {}, life support {}\n", .{ oxygen, co2, lifesupport });
 }
 
 fn isBitOne(num: u32, pos: u5) bool {
@@ -172,8 +186,10 @@ test "oxygen" {
     defer readings.deinit();
 
     var removeList = ArrayList(u5).init(gpa);
+    defer removeList.deinit();
 
     var bitpath = ArrayList(u1).init(gpa);
+    defer bitpath.deinit();
     var biterator: u5 = std.meta.bitCount(u5);
     filter: while (biterator > 0) : (biterator -= 1) {
         const bit = biterator - 1;
@@ -201,8 +217,10 @@ test "co2" {
     defer readings.deinit();
 
     var removeList = ArrayList(u5).init(gpa);
+    defer removeList.deinit();
 
     var bitpath = ArrayList(u1).init(gpa);
+    defer bitpath.deinit();
     var biterator: u5 = std.meta.bitCount(u5);
     filter: while (biterator > 0) : (biterator -= 1) {
         const bit = biterator - 1;
