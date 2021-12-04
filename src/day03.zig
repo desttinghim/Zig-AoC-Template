@@ -58,7 +58,7 @@ fn part2(readings: ArrayList(u12), total1Bits: [bitCount]u16) !void {
         if (list.items.len == 2) print("{b}, {b}", .{ list.items[0], list.items[1] });
         print("\n", .{});
         var mostcommon: u1 = if (total1Bits[a] >= readings.items.len / 2) 1 else 0;
-        const bitmask = @as(u12, 1) << a;
+        const bitmask = @as(u12, 1) << (bitCount - a - 1);
         var i = list.items.len - 1;
         while (i > 0) : (i -= 1) {
             if (list.items.len == 1) break :search;
