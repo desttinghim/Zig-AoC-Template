@@ -15,27 +15,23 @@ pub fn main() !void {
     var readings = try loadReadings(u12, data);
     defer readings.deinit();
 
-    var total1Bits = try part1(readings);
-    try part2(readings, total1Bits);
+    var sums = try sumbits(u12, readings);
+    defer sums.deinit();
+
+    try part1(readings.items.len, sums.items);
+    try part2(readings, sums.items);
 }
 
-fn part1(readings: ArrayList(u12)) ![12]u16 {
-    var total1Bits = [_]u16{0} ** 12;
-    for (readings.items) |number| {
-        var i: u4 = 0;
-        while (i < 12) : (i += 1) {
-            // const bitmask = @as(u12, 1) << i;
-            if (isBitOne(number, i)) total1Bits[i] += 1;
-        }
+const Power = struct { gamma: u32, epsilon: u32, power: u32 };
+
+fn part1(total: usize, sums: []const u32) Power {
+    var power = Power{ .gamma = 0, .epsilon = 0, .power = 0 };
+    for (sums) |count, i| {
+        if (count >= total / 2) power.gamma |= @as(u32, 1) << @intCast(u5, i);
+        if (count <= total / 2) power.epsilon |= @as(u32, 1) << @intCast(u5, i);
     }
-    var gamma: u32 = 0;
-    var epsilon: u32 = 0;
-    for (total1Bits) |bits, i| {
-        if (bits >= readings.items.len / 2) gamma |= @as(u32, 1) << @intCast(u5, 12 - i - 1);
-        if (bits <= readings.items.len / 2) epsilon |= @as(u32, 1) << @intCast(u5, 12 - i - 1);
-    }
-    print("gamma: {}, epsilon: {}, power: {}, bitnum: {any}\n", .{ gamma, epsilon, gamma * epsilon, total1Bits });
-    return total1Bits;
+    power.power = power.gamma * power.epsilon;
+    return power;
 }
 
 fn part2(readings: ArrayList(u12), total1Bits: [12]u16) !void {
@@ -151,6 +147,19 @@ test "sums" {
     assert(sums.items[2] == 8);
     assert(sums.items[3] == 5);
     assert(sums.items[4] == 7);
+}
+
+test "part1" {
+    var readings = try loadReadings(u5, @embedFile("../data/day03-example.txt"));
+    defer readings.deinit();
+
+    var sums = try sumbits(u5, readings.items);
+    defer sums.deinit();
+
+    var power = part1(readings.items.len, sums.items);
+    assert(power.gamma == 22);
+    assert(power.epsilon == 9);
+    assert(power.power == 198);
 }
 
 // Useful stdlib functions
