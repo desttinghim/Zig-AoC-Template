@@ -53,24 +53,65 @@ fn part2(readings: ArrayList(u12), total1Bits: [bitCount]u16) !void {
     var list = ArrayList(u12).init(gpa);
     try list.appendSlice(readings.items);
     defer list.deinit();
-    search: while (a < bitCount) : (a += 1) {
+
+    while (a < bitCount) : (a += 1) {
         print("{}: {}\t", .{ a, list.items.len });
         if (list.items.len == 2) print("{b}, {b}", .{ list.items[0], list.items[1] });
         print("\n", .{});
         var mostcommon: u1 = if (total1Bits[a] >= readings.items.len / 2) 1 else 0;
+        if (mostcommon == 1) {
+            keepOnesAtPos(&list, a);
+        } else if (mostcommon == 0) {
+            keepZeroesAtPos(&list, a);
+        }
+        if (list.items.len == 1) break;
+    }
+    var oxygen: u32 = list.items[0];
+    print("{}, {}", .{ oxygen, a });
+
+    a = 0;
+    try list.resize(0);
+    try list.appendSlice(readings.items);
+    search2: while (a < bitCount) : (a += 1) {
+        print("{}: {}\t", .{ a, list.items.len });
+        if (list.items.len == 2) print("{b}, {b}", .{ list.items[0], list.items[1] });
+        print("\n", .{});
+        var leastcommon: u1 = if (total1Bits[a] < readings.items.len / 2) 1 else 0;
         const bitmask = @as(u12, 1) << (bitCount - a - 1);
         var i = list.items.len - 1;
         while (i > 0) : (i -= 1) {
-            if (list.items.len == 1) break :search;
+            if (list.items.len == 1) break :search2;
             var num = readings.items[i];
-            if (mostcommon == 0) {
-                if (bitmask & num != 0) _ = list.swapRemove(i);
-            } else if (mostcommon == 1) {
+            if (leastcommon == 0) {
                 if (bitmask & num == 0) _ = list.swapRemove(i);
+            } else if (leastcommon == 1) {
+                if (bitmask & num != 0) _ = list.swapRemove(i);
             }
         }
     }
-    print("{any}, {}", .{ list.items, a });
+    var co2: u32 = list.items[0];
+    print("{}, {}", .{ co2, a });
+
+    var lifesupport = oxygen * co2;
+    print("life support: {}", .{lifesupport});
+}
+
+fn keepOnesAtPos(list: *ArrayList(u12), pos: u4) void {
+    const bitmask = @as(u12, 1) << (bitCount - pos - 1);
+    var i = list.items.len - 1;
+    while (i > 0) : (i -= 1) {
+        if (list.items[i] & bitmask == 0) _ = list.swapRemove(i);
+        if (list.items.len == 1) return;
+    }
+}
+
+fn keepZeroesAtPos(list: *ArrayList(u12), pos: u4) void {
+    const bitmask = @as(u12, 1) << (bitCount - pos - 1);
+    var i = list.items.len - 1;
+    while (i > 0) : (i -= 1) {
+        if (list.items[i] & bitmask != 0) _ = list.swapRemove(i);
+        if (list.items.len == 1) return;
+    }
 }
 
 // Useful stdlib functions
