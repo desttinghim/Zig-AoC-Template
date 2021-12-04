@@ -15,7 +15,7 @@ pub fn main() !void {
     var readings = try loadReadings(u12, data);
     defer readings.deinit();
 
-    var sums = try sumbits(u12, readings);
+    var sums = try sumallbits(u12, readings);
     defer sums.deinit();
 
     try part1(readings.items.len, sums.items);
@@ -102,7 +102,15 @@ test "loadReadings" {
     }
 }
 
-fn sumbits(T: anytype, items: []const T) !ArrayList(u32) {
+fn sumbit(T: anytype, items: []const T, bit: u5) u32 {
+    var sum: u32 = 0;
+    for (items) |number| {
+        if (isBitOne(@intCast(u32, number), bit)) sum += 1;
+    }
+    return sum;
+}
+
+fn sumallbits(T: anytype, items: []const T) !ArrayList(u32) {
     const bitCount = std.meta.bitCount(T);
     var sums = try ArrayList(u32).initCapacity(gpa, bitCount);
     try sums.resize(bitCount);
@@ -121,7 +129,7 @@ test "sums" {
     var readings = try loadReadings(u5, @embedFile("../data/day03-example.txt"));
     defer readings.deinit();
 
-    var sums = try sumbits(u5, readings.items);
+    var sums = try sumallbits(u5, readings.items);
     defer sums.deinit();
     print("{any}\n", .{sums.items});
     assert(sums.items[0] == 5);
@@ -129,13 +137,16 @@ test "sums" {
     assert(sums.items[2] == 8);
     assert(sums.items[3] == 5);
     assert(sums.items[4] == 7);
+
+    var sum = sumbit(u5, readings.items, 0);
+    assert(sum == 5);
 }
 
 test "part1" {
     var readings = try loadReadings(u5, @embedFile("../data/day03-example.txt"));
     defer readings.deinit();
 
-    var sums = try sumbits(u5, readings.items);
+    var sums = try sumallbits(u5, readings.items);
     defer sums.deinit();
 
     var power = part1(readings.items.len, sums.items);
@@ -164,42 +175,51 @@ test "filter" {
     var readings = try loadReadings(u5, @embedFile("../data/day03-example.txt"));
     defer readings.deinit();
 
-    var sums = try sumbits(u5, readings.items);
-    defer sums.deinit();
-
-    assert(sums.items[4] == 7);
-
-    var a: u5 = 4;
-    {
-        // Test running first iteration
-        var i = readings.items.len;
-        while (i > 0) {
-            if (!isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
-            // if (readings.items.len == 1) break;
-            i = std.math.sub(usize, i, 1) catch break;
-        }
-        a -= 1;
-    }
-    assert(readings.items.len == 7);
-
-    while (a >= 0) {
+    var a: u5 = std.meta.bitCount(u5);
+    var nextsum = sumbit(u5, readings.items, a);
+    filter: while (a >= 0) {
         // oxygen
-        var i = readings.items.len;
-        var mostcommon: u1 = if (sums.items[a] >= readings.items.len / 2) 1 else 0;
-        print("\n", .{});
-        while (i > 0) {
-            print("{b} {}\n", .{ readings.items[i - 1], readings.items[i - 1] });
-            if (mostcommon == 1) {
-                if (!isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
-            } else {
-                if (isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
+        var i = readings.items.len - 1;
+        const sum = nextsum;
+        nextsum = 0;
+        const mostcommon: u1 = if (sum >= readings.items.len / 2) 1 else 0;
+        print("\nmostcommon {}\n", .{mostcommon});
+        const nextbit: ?u5 = std.math.sub(u5, a, 1) catch null;
+        if (mostcommon == 1) {
+            while (i > 0) {
+                if (!isBitOne(readings.items[i], a)) {
+                    _ = readings.swapRemove(i);
+                } else if (nextbit) |bit| {
+                    if (isBitOne(readings.items[i], bit)) nextsum += 1;
+                }
+                if (readings.items.len == 1) break :filter;
+                i = std.math.sub(usize, i, 1) catch break;
             }
-            if (readings.items.len == 1) break;
-            i = std.math.sub(usize, i, 1) catch break;
+        } else {
+            while (i > 0) {
+                if (!isBitOne(readings.items[i], a)) {
+                    _ = readings.swapRemove(i);
+                } else if (nextbit) |bit| {
+                    if (isBitOne(readings.items[i], bit)) nextsum += 1;
+                }
+                if (readings.items.len == 1) break :filter;
+                i = std.math.sub(usize, i, 1) catch break;
+            }
         }
-        if (readings.items.len == 1) break;
-        a = std.math.sub(u5, a, 1) catch break;
+        // while (i > 0) {
+        //     print("{b} {}\n", .{ readings.items[i], readings.items[i] });
+        //     if (mostcommon == 1) {
+        //         if (!isBitOne(readings.items[i], a)) _ = readings.swapRemove(i);
+        //     } else {
+        //         if (isBitOne(readings.items[i], a)) _ = readings.swapRemove(i);
+        //     }
+        //     if (readings.items.len == 1) break :filter;
+        //     if (nextbit) |bit| {
+        //         if (isBitOne(readings.items[i], bit)) nextsum += 1;
+        //     }
+        // }
         print("\n", .{});
+        a = std.math.sub(u5, a, 1) catch break;
     }
     print("{any}, {b}\n", .{ readings.items, readings.items[0] });
     assert(readings.items.len == 1 and readings.items[0] == 22);
