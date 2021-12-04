@@ -19,7 +19,7 @@ pub fn main() !void {
     defer sums.deinit();
 
     try part1(readings.items.len, sums.items);
-    try part2(readings, sums.items);
+    // try part2(readings, sums.items);
 }
 
 const Power = struct { gamma: u32, epsilon: u32, power: u32 };
@@ -71,24 +71,6 @@ fn part2(readings: ArrayList(u12), total1Bits: [12]u16) !void {
 
     var lifesupport = oxygen * co2;
     print("life support: {}\n", .{lifesupport});
-}
-
-fn keepOnesAtPos(list: *ArrayList(u12), pos: u4) void {
-    // const bitmask = @as(u12, 1) << (bitCount - pos - 1);
-    var i = list.items.len;
-    while (i > 0) : (i -= 1) {
-        if (!isBitOne(list.items[i - 1], pos)) _ = list.swapRemove(i - 1);
-        if (list.items.len == 1) return;
-    }
-}
-
-fn keepZeroesAtPos(list: *ArrayList(u12), pos: u4) void {
-    // const bitmask = @as(u12, 1) << (bitCount - pos - 1);
-    var i = list.items.len;
-    while (i > 0) : (i -= 1) {
-        if (isBitOne(list.items[i - 1], pos)) _ = list.swapRemove(i - 1);
-        if (list.items.len == 1) return;
-    }
 }
 
 fn isBitOne(num: u32, pos: u5) bool {
@@ -160,6 +142,67 @@ test "part1" {
     assert(power.gamma == 22);
     assert(power.epsilon == 9);
     assert(power.power == 198);
+}
+
+fn keepOnesAtPos(list: *ArrayList(u12), pos: u4) void {
+    var i = list.items.len;
+    while (i > 0) : (i -= 1) {
+        if (!isBitOne(list.items[i - 1], pos)) _ = list.swapRemove(i - 1);
+        if (list.items.len == 1) return;
+    }
+}
+
+fn keepZeroesAtPos(list: *ArrayList(u12), pos: u4) void {
+    var i = list.items.len;
+    while (i > 0) : (i -= 1) {
+        if (isBitOne(list.items[i - 1], pos)) _ = list.swapRemove(i - 1);
+        if (list.items.len == 1) return;
+    }
+}
+
+test "filter" {
+    var readings = try loadReadings(u5, @embedFile("../data/day03-example.txt"));
+    defer readings.deinit();
+
+    var sums = try sumbits(u5, readings.items);
+    defer sums.deinit();
+
+    assert(sums.items[4] == 7);
+
+    var a: u5 = 4;
+    {
+        // Test running first iteration
+        var i = readings.items.len;
+        while (i > 0) {
+            if (!isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
+            // if (readings.items.len == 1) break;
+            i = std.math.sub(usize, i, 1) catch break;
+        }
+        a -= 1;
+    }
+    assert(readings.items.len == 7);
+
+    while (a >= 0) {
+        // oxygen
+        var i = readings.items.len;
+        var mostcommon: u1 = if (sums.items[a] >= readings.items.len / 2) 1 else 0;
+        print("\n", .{});
+        while (i > 0) {
+            print("{b} {}\n", .{ readings.items[i - 1], readings.items[i - 1] });
+            if (mostcommon == 1) {
+                if (!isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
+            } else {
+                if (isBitOne(readings.items[i - 1], a)) _ = readings.swapRemove(i - 1);
+            }
+            if (readings.items.len == 1) break;
+            i = std.math.sub(usize, i, 1) catch break;
+        }
+        if (readings.items.len == 1) break;
+        a = std.math.sub(u5, a, 1) catch break;
+        print("\n", .{});
+    }
+    print("{any}, {b}\n", .{ readings.items, readings.items[0] });
+    assert(readings.items.len == 1 and readings.items[0] == 22);
 }
 
 // Useful stdlib functions
